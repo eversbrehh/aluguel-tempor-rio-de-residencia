@@ -60,4 +60,32 @@ export class AssociacaoRepositorySupabase implements IAssociacaoRepository {
     if (error) throw new Error(`Erro ao buscar associação: ${error.message}`);
     return data ? toEntity(data as AssociacaoRow) : null;
   }
+
+  async findById(id: string): Promise<Associacao | null> {
+    const { data, error } = await supabaseAdmin
+      .from('associacoes')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw new Error(`Erro ao buscar associação: ${error.message}`);
+    return data ? toEntity(data as AssociacaoRow) : null;
+  }
+
+  async encerrar(id: string, dataFim?: string | null): Promise<Associacao> {
+    const update: Record<string, unknown> = { status: 'encerrada' };
+    if (dataFim) update.data_fim = dataFim;
+
+    const { data, error } = await supabaseAdmin
+      .from('associacoes')
+      .update(update)
+      .eq('id', id)
+      .eq('status', 'ativa')
+      .select()
+      .maybeSingle();
+
+    if (error) throw new Error(`Erro ao encerrar associação: ${error.message}`);
+    if (!data) throw new Error('Associação não encontrada ou já encerrada.');
+    return toEntity(data as AssociacaoRow);
+  }
 }

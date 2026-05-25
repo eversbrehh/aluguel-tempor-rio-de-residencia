@@ -4,6 +4,7 @@ import { container } from '../container';
 import {
   associarComodatarioSchema,
   criarImovelSchema,
+  encerrarAssociacaoSchema,
 } from '../schemas/imovelSchemas';
 
 function requireUser(req: Request): { id: string; email: string } {
@@ -65,6 +66,26 @@ export class ImovelController {
         dataFim: dto.dataFim,
       });
       res.status(201).json({ data: associacao });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async encerrarAssociacao(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const user = requireUser(req);
+      const dto = encerrarAssociacaoSchema.parse(req.body ?? {});
+      const associacao = await container.encerrarAssociacao.execute({
+        imovelId: req.params.imovelId,
+        associacaoId: req.params.associacaoId,
+        requesterId: user.id,
+        dataFim: dto.dataFim,
+      });
+      res.status(200).json({ data: associacao });
     } catch (err) {
       next(err);
     }

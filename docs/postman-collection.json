@@ -1,0 +1,387 @@
+{
+    "info": {
+        "name": "LAMD - Monolito (Sprint 2)",
+        "description": "Coleção de endpoints REST do Monolito Modular do sistema de aluguel temporário de residência.\n\nFluxo sugerido para teste end-to-end:\n1. Register Proprietário\n2. Register Comodatário\n3. Login Proprietário → salvar token em {{token_proprietario}}\n4. Login Comodatário → salvar token em {{token_comodatario}}\n5. Criar Imóvel (como proprietário) → salvar id em {{imovel_id}}\n6. Listar Imóveis Meus (proprietário)\n7. Associar Comodatário ao Imóvel → salvar id em {{associacao_id}}\n8. Listar Imóveis Meus (comodatário) → deve aparecer\n9. Obter Imóvel por ID\n10. Encerrar Associação",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:3000/api/v1",
+            "type": "string"
+        },
+        {
+            "key": "token_proprietario",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "token_comodatario",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "imovel_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "associacao_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "email_comodatario",
+            "value": "comodatario@example.com",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "url": {
+                    "raw": "http://localhost:3000/health",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "3000",
+                    "path": [
+                        "health"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Register - Proprietário",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"proprietario@example.com\",\n  \"password\": \"senha12345\",\n  \"nome\": \"Maria Proprietária\",\n  \"tipo\": \"proprietario\",\n  \"telefone\": \"+5531999990001\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/register",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Register - Comodatário",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{email_comodatario}}\",\n  \"password\": \"senha12345\",\n  \"nome\": \"João Comodatário\",\n  \"tipo\": \"comodatario\",\n  \"telefone\": \"+5531999990002\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/register",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Login - Proprietário",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data.accessToken) {",
+                                    "  pm.collectionVariables.set('token_proprietario', res.data.accessToken);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"proprietario@example.com\",\n  \"password\": \"senha12345\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Login - Comodatário",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data.accessToken) {",
+                                    "  pm.collectionVariables.set('token_comodatario', res.data.accessToken);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{email_comodatario}}\",\n  \"password\": \"senha12345\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Imóveis",
+            "item": [
+                {
+                    "name": "Criar Imóvel (proprietário)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data.id) {",
+                                    "  pm.collectionVariables.set('imovel_id', res.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token_proprietario}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"titulo\": \"Apartamento Centro\",\n  \"endereco\": \"Av. Afonso Pena, 1000 - Belo Horizonte/MG\",\n  \"descricao\": \"Apto 2 quartos mobiliado\",\n  \"valorAluguel\": 1800.00\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/imoveis",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "imoveis"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Listar Imóveis Meus (proprietário)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token_proprietario}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/imoveis/meus",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "imoveis",
+                                "meus"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Listar Imóveis Meus (comodatário)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token_comodatario}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/imoveis/meus",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "imoveis",
+                                "meus"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Obter Imóvel por ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token_proprietario}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/imoveis/{{imovel_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "imoveis",
+                                "{{imovel_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Associar Comodatário ao Imóvel",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data.id) {",
+                                    "  pm.collectionVariables.set('associacao_id', res.data.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token_proprietario}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"comodatarioEmail\": \"{{email_comodatario}}\",\n  \"dataInicio\": \"2026-05-20\",\n  \"dataFim\": \"2026-12-20\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/imoveis/{{imovel_id}}/associacoes",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "imoveis",
+                                "{{imovel_id}}",
+                                "associacoes"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Encerrar Associação",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token_proprietario}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"dataFim\": \"2026-08-30\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/imoveis/{{imovel_id}}/associacoes/{{associacao_id}}/encerrar",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "imoveis",
+                                "{{imovel_id}}",
+                                "associacoes",
+                                "{{associacao_id}}",
+                                "encerrar"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

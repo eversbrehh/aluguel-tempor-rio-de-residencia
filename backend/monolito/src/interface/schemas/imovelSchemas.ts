@@ -18,3 +18,12 @@ export const associarComodatarioSchema = z.object({
 
 export type CriarImovelDTO = z.infer<typeof criarImovelSchema>;
 export type AssociarComodatarioDTO = z.infer<typeof associarComodatarioSchema>;
+
+export const encerrarAssociacaoSchema = z.object({
+  dataFim: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use o formato YYYY-MM-DD')
+    .optional(),
+});
+
+export type EncerrarAssociacaoDTO = z.infer<typeof encerrarAssociacaoSchema>;

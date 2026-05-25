@@ -11,3 +11,7 @@ imovelRouter.post('/', ImovelController.create);
 imovelRouter.get('/meus', ImovelController.listMine);
 imovelRouter.get('/:id', ImovelController.getById);
 imovelRouter.post('/:id/associacoes', ImovelController.associarComodatario);
+imovelRouter.patch(
+  '/:imovelId/associacoes/:associacaoId/encerrar',
+  ImovelController.encerrarAssociacao,
+);

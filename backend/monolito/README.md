@@ -1,6 +1,6 @@
-# Monolito Modular — Sprint 1
+# Monolito Modular — Sprints 1 & 2
 
-Backend REST do sistema de aluguel temporário de residência (LAMD).
+Backend REST do sistema de aluguel temporário de residência (LAMD) + **publisher do Outbox Pattern** para RabbitMQ.
 
 ## Stack
 
@@ -14,7 +14,10 @@ Backend REST do sistema de aluguel temporário de residência (LAMD).
 
 1. Node.js 20+ e npm
 2. Conta no [Supabase](https://supabase.com) com um projeto criado
-3. Executar o script `db/schema.sql` no SQL Editor do Supabase
+3. Executar **em ordem** no SQL Editor do Supabase:
+   1. `db/schema.sql` (Sprint 1)
+   2. `db/sprint2-outbox.sql` (Sprint 2 — outbox + triggers)
+4. RabbitMQ rodando (via `docker compose up -d rabbitmq` na raiz do repo)
 
 ## Instalação
 
@@ -35,6 +38,11 @@ Variáveis obrigatórias em `.env`:
 | `PORT` | Porta HTTP (padrão: 3000) |
 | `API_PREFIX` | Prefixo das rotas (padrão: `/api/v1`) |
 | `CORS_ORIGIN` | Origens permitidas (padrão: `*` em dev) |
+| `RABBITMQ_URL` | URL AMQP (ex.: `amqp://lamd:lamd123@localhost:5672`) |
+| `RABBITMQ_EXCHANGE` | Exchange principal (padrão: `lamd.events`) |
+| `OUTBOX_POLL_INTERVAL_MS` | Intervalo de polling do Outbox (padrão: 1000) |
+| `OUTBOX_BATCH_SIZE` | Tamanho do lote (padrão: 20) |
+| `OUTBOX_MAX_ATTEMPTS` | Tentativas antes de marcar `failed` (padrão: 5) |
 
 ## Execução
 
@@ -141,6 +149,22 @@ Vincula um comodatário ao imóvel.
 }
 ```
 **201:** `{ "data": <Associacao> }`
+
+#### `PATCH /api/v1/imoveis/:imovelId/associacoes/:associacaoId/encerrar` (proprietário)
+Encerra uma associação ativa. Dispara o evento `associacao.encerrada`.
+
+**Body (opcional):** `{ "dataFim": "2026-08-30" }`
+**200:** `{ "data": <Associacao> }`
+
+## Eventos (Sprint 2)
+
+O monolito grava eventos na tabela `outbox_events` via _triggers_ e o `OutboxWorker` publica no RabbitMQ. Detalhes do contrato em [`../../docs/events.md`](../../docs/events.md).
+
+| Evento | Disparado em |
+|---|---|
+| `imovel.criado` | `AFTER INSERT` em `imoveis` |
+| `associacao.criada` | `AFTER INSERT` em `associacoes` |
+| `associacao.encerrada` | `AFTER UPDATE` quando `status: ativa → encerrada` |
 
 ## Banco de dados
 

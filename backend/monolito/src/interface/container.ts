@@ -1,5 +1,6 @@
 import { AssociarComodatario } from '@application/useCases/AssociarComodatario';
 import { CriarImovel } from '@application/useCases/CriarImovel';
+import { EncerrarAssociacao } from '@application/useCases/EncerrarAssociacao';
 import { ListarImoveisDoUsuario } from '@application/useCases/ListarImoveisDoUsuario';
 import { LoginUsuario } from '@application/useCases/LoginUsuario';
 import { ObterImovelPorId } from '@application/useCases/ObterImovelPorId';
@@ -26,4 +27,5 @@ export const container = {
   listarImoveisDoUsuario: new ListarImoveisDoUsuario(imovelRepo, profileRepo),
   obterImovelPorId: new ObterImovelPorId(imovelRepo, associacaoRepo),
   associarComodatario: new AssociarComodatario(imovelRepo, profileRepo, associacaoRepo),
+  encerrarAssociacao: new EncerrarAssociacao(imovelRepo, associacaoRepo),
 };
