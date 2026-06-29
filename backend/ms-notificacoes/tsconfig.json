@@ -29,6 +29,9 @@
             ],
             "@handlers/*": [
                 "handlers/*"
+            ],
+            "@interface/*": [
+                "interface/*"
             ]
         }
     },

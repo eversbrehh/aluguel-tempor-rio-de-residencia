@@ -1,5 +1,6 @@
 import { Associacao, StatusAssociacao } from '@domain/entities/Associacao';
 import {
+  AssociacaoComNome,
   CreateAssociacaoInput,
   IAssociacaoRepository,
 } from '@domain/repositories/IAssociacaoRepository';
@@ -15,6 +16,10 @@ interface AssociacaoRow {
   created_at: string;
 }
 
+interface AssociacaoComJoinRow extends AssociacaoRow {
+  comodatario: { nome: string | null } | { nome: string | null }[] | null;
+}
+
 function toEntity(row: AssociacaoRow): Associacao {
   return {
     id: row.id,
@@ -24,6 +29,15 @@ function toEntity(row: AssociacaoRow): Associacao {
     dataFim: row.data_fim,
     status: row.status,
     createdAt: row.created_at,
+  };
+}
+
+function toEntityComNome(row: AssociacaoComJoinRow): AssociacaoComNome {
+  const join = row.comodatario;
+  const first = Array.isArray(join) ? join[0] : join;
+  return {
+    ...toEntity(row),
+    comodatarioNome: first?.nome ?? null,
   };
 }
 
@@ -70,6 +84,18 @@ export class AssociacaoRepositorySupabase implements IAssociacaoRepository {
 
     if (error) throw new Error(`Erro ao buscar associação: ${error.message}`);
     return data ? toEntity(data as AssociacaoRow) : null;
+  }
+
+  async findAtivasByImovel(imovelId: string): Promise<AssociacaoComNome[]> {
+    const { data, error } = await supabaseAdmin
+      .from('associacoes')
+      .select('*, comodatario:profiles!comodatario_id(nome)')
+      .eq('imovel_id', imovelId)
+      .eq('status', 'ativa')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(`Erro ao listar associações: ${error.message}`);
+    return ((data as unknown as AssociacaoComJoinRow[]) ?? []).map(toEntityComNome);
   }
 
   async encerrar(id: string, dataFim?: string | null): Promise<Associacao> {

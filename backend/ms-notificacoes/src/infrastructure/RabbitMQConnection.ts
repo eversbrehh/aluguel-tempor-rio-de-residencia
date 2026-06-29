@@ -61,6 +61,9 @@ export const rabbitMQ = new RabbitMQConnection();
 
 /**
  * Declara de forma idempotente apenas o necessário para este consumidor.
+ *
+ * Sprint 3: passa a consumir também eventos de MS Tarefa e MS Documento,
+ * que são emitidos por aqueles serviços e roteados pelo exchange topic.
  */
 export async function assertConsumerTopology(channel: Channel): Promise<void> {
   await channel.assertExchange(env.RABBITMQ_EXCHANGE, 'topic', { durable: true });
@@ -71,7 +74,19 @@ export async function assertConsumerTopology(channel: Channel): Promise<void> {
     durable: true,
     deadLetterExchange: env.RABBITMQ_DLX,
   });
-  await channel.bindQueue(env.RABBITMQ_QUEUE, env.RABBITMQ_EXCHANGE, 'associacao.criada');
-  await channel.bindQueue(env.RABBITMQ_QUEUE, env.RABBITMQ_EXCHANGE, 'associacao.encerrada');
-  await channel.bindQueue(env.RABBITMQ_QUEUE, env.RABBITMQ_EXCHANGE, 'imovel.criado');
+
+  const routingKeys = [
+    'associacao.criada',
+    'associacao.encerrada',
+    'imovel.criado',
+    'tarefa.criada',
+    'tarefa.concluida',
+    'documento.solicitado',
+    'documento.enviado',
+    'documento.aprovado',
+    'documento.rejeitado',
+  ];
+  for (const rk of routingKeys) {
+    await channel.bindQueue(env.RABBITMQ_QUEUE, env.RABBITMQ_EXCHANGE, rk);
+  }
 }

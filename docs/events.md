@@ -32,20 +32,22 @@ Todos os eventos seguem o mesmo envelope:
 
 ```mermaid
 flowchart LR
-  Monolito((Monolito + Outbox Worker)) -- publish --> EX[lamd.events<br/>topic]
-  EX -- associacao.* / imovel.criado --> QN[notificacoes.eventos]
+  Monolito((Monolito + Outbox)) -- publish --> EX[lamd.events<br/>topic]
+  MSTout((MS Tarefa + Outbox)) -- publish --> EX
+  MSDout((MS Documento + Outbox)) -- publish --> EX
+  EX -- associacao.* / imovel.criado<br/>tarefa.* / documento.* --> QN[notificacoes.eventos]
   EX -- associacao.* --> QT[tarefas.eventos]
   EX -- associacao.* --> QC[chat.eventos]
-  EX -- associacao.criada --> QD[documentos.eventos]
+  EX -- associacao.criada / encerrada --> QD[documentos.eventos]
   QN -- nack/erro --> DLX[lamd.events.dlx]
   QT -- nack/erro --> DLX
   QC -- nack/erro --> DLX
   QD -- nack/erro --> DLX
   DLX -- "#" --> DLQ[lamd.events.dlq]
-  QN --> MN[MS Notificações]
-  QT -.-> MT[MS Tarefa - Sprint 3]
-  QC -.-> MC[MS Chat - Sprint 3]
-  QD -.-> MD[MS Documento - Sprint 3]
+  QN --> MN[MS Notificações<br/>+ WebSocket gateway]
+  QT --> MT[MS Tarefa]
+  QC -.-> MC[MS Chat - futuro]
+  QD --> MD[MS Documento]
 ```
 
 ## Catálogo de Eventos
@@ -62,7 +64,7 @@ Publicado quando um imóvel é cadastrado.
 | `valorAluguel`   | number \| null | Valor do aluguel (opcional)     |
 | `criadoEm`       | timestamp ISO  | Quando foi inserido             |
 
-**Bindings:** `notificacoes.eventos`.
+**Produtor:** monolito. **Bindings:** `notificacoes.eventos`.
 
 ---
 
@@ -79,7 +81,7 @@ Publicado ao criar uma associação imóvel↔comodatário.
 | `dataFim`        | date \| null   | Fim previsto (opcional)    |
 | `criadoEm`       | timestamp ISO  | Quando foi inserido        |
 
-**Bindings:** `notificacoes.eventos`, `tarefas.eventos`, `chat.eventos`, `documentos.eventos`.
+**Produtor:** monolito. **Bindings:** `notificacoes.eventos`, `tarefas.eventos`, `chat.eventos`, `documentos.eventos`.
 
 ---
 
@@ -95,11 +97,119 @@ Publicado quando uma associação ativa é encerrada.
 | `dataFim`        | date \| null   | Data efetiva de encerramento|
 | `encerradaEm`    | timestamp ISO  | `now()` no instante do update|
 
-**Bindings:** `notificacoes.eventos`, `tarefas.eventos`, `chat.eventos`.
+**Produtor:** monolito. **Bindings:** `notificacoes.eventos`, `tarefas.eventos`, `chat.eventos`, `documentos.eventos`.
+
+---
+
+### `tarefa.criada` _(Sprint 3)_
+Publicado pelo MS Tarefa ao registrar uma nova tarefa.
+
+| Campo            | Tipo                 | Descrição                                    |
+|------------------|----------------------|----------------------------------------------|
+| `tarefaId`       | uuid                 | Id da tarefa                                 |
+| `associacaoId`   | uuid                 | Id da associação                             |
+| `imovelId`       | uuid                 | Id do imóvel                                 |
+| `proprietarioId` | uuid                 | Profile do proprietário                      |
+| `comodatarioId`  | uuid                 | Profile do comodatário (destinatário)        |
+| `titulo`         | string               | Título da tarefa                             |
+| `descricao`      | string \| null       | Descrição                                    |
+| `recorrencia`    | enum                 | `unica` \| `diaria` \| `semanal` \| `mensal` |
+| `prazo`          | date \| null         | Data limite (opcional)                       |
+| `criadoEm`       | timestamp ISO        | Quando foi inserido                          |
+
+**Produtor:** ms-tarefa. **Bindings:** `notificacoes.eventos`.
+
+---
+
+### `tarefa.concluida` _(Sprint 3)_
+Publicado pelo MS Tarefa quando o comodatário marca uma tarefa como concluída.
+
+| Campo            | Tipo           | Descrição                              |
+|------------------|----------------|----------------------------------------|
+| `tarefaId`       | uuid           | Id da tarefa                           |
+| `associacaoId`   | uuid           | Id da associação                       |
+| `imovelId`       | uuid           | Id do imóvel                           |
+| `proprietarioId` | uuid           | Profile do proprietário (destinatário) |
+| `comodatarioId`  | uuid           | Profile do comodatário                 |
+| `titulo`         | string         | Título da tarefa                       |
+| `concluidaEm`    | timestamp ISO  | Instante da conclusão                  |
+
+**Produtor:** ms-tarefa. **Bindings:** `notificacoes.eventos`.
+
+---
+
+### `documento.solicitado` _(Sprint 3)_
+Publicado pelo MS Documento ao registrar uma solicitação (manual pelo proprietário
+ou automática ao processar `associacao.criada`).
+
+| Campo            | Tipo           | Descrição                                  |
+|------------------|----------------|--------------------------------------------|
+| `documentoId`    | uuid           | Id do documento                            |
+| `associacaoId`   | uuid           | Id da associação                           |
+| `imovelId`       | uuid           | Id do imóvel                               |
+| `proprietarioId` | uuid           | Profile do proprietário                    |
+| `comodatarioId`  | uuid           | Profile do comodatário (destinatário)      |
+| `tipo`           | string         | Tipo lógico (`rg`, `comprovante_renda`, …) |
+| `titulo`         | string         | Título legível                             |
+
+**Produtor:** ms-documento. **Bindings:** `notificacoes.eventos`.
+
+---
+
+### `documento.enviado` _(Sprint 3)_
+Publicado quando o comodatário faz upload do arquivo solicitado.
+
+| Campo            | Tipo           | Descrição                              |
+|------------------|----------------|----------------------------------------|
+| `documentoId`    | uuid           | Id do documento                        |
+| `associacaoId`   | uuid           | Id da associação                       |
+| `imovelId`       | uuid           | Id do imóvel                           |
+| `proprietarioId` | uuid           | Profile do proprietário (destinatário) |
+| `comodatarioId`  | uuid           | Profile do comodatário                 |
+| `tipo`           | string         | Tipo lógico                            |
+| `titulo`         | string         | Título legível                         |
+
+**Produtor:** ms-documento. **Bindings:** `notificacoes.eventos`.
+
+---
+
+### `documento.aprovado` _(Sprint 3)_
+Publicado quando o proprietário aprova um documento enviado.
+
+| Campo            | Tipo           | Descrição                                  |
+|------------------|----------------|--------------------------------------------|
+| `documentoId`    | uuid           | Id do documento                            |
+| `associacaoId`   | uuid           | Id da associação                           |
+| `imovelId`       | uuid           | Id do imóvel                               |
+| `proprietarioId` | uuid           | Profile do proprietário                    |
+| `comodatarioId`  | uuid           | Profile do comodatário (destinatário)      |
+| `tipo`           | string         | Tipo lógico                                |
+| `titulo`         | string         | Título legível                             |
+
+**Produtor:** ms-documento. **Bindings:** `notificacoes.eventos`.
+
+---
+
+### `documento.rejeitado` _(Sprint 3)_
+Publicado quando o proprietário rejeita um documento enviado.
+
+| Campo            | Tipo           | Descrição                                  |
+|------------------|----------------|--------------------------------------------|
+| `documentoId`    | uuid           | Id do documento                            |
+| `associacaoId`   | uuid           | Id da associação                           |
+| `imovelId`       | uuid           | Id do imóvel                               |
+| `proprietarioId` | uuid           | Profile do proprietário                    |
+| `comodatarioId`  | uuid           | Profile do comodatário (destinatário)      |
+| `tipo`           | string         | Tipo lógico                                |
+| `titulo`         | string         | Título legível                             |
+| `observacao`     | string \| null | Motivo da rejeição (opcional)              |
+
+**Produtor:** ms-documento. **Bindings:** `notificacoes.eventos`.
 
 ## Garantias
 
-- **Atomicidade entre estado e evento:** uso do _Outbox Pattern_. Triggers do Postgres gravam o evento na tabela `outbox_events` na mesma transação da mudança de estado. Um worker no monolito (`OutboxWorker`) faz polling com `SELECT ... FOR UPDATE SKIP LOCKED` e publica no RabbitMQ.
-- **At-least-once delivery:** mensagens publicadas com `persistent: true`. Em caso de crash entre publicação e `mark_outbox_published`, a mensagem pode ser republicada — daí a importância da idempotência no consumidor.
-- **Idempotência no consumidor:** tabela `processed_events` (PK = `event_id`) impede efeitos colaterais duplicados.
+- **Atomicidade entre estado e evento:** uso do _Outbox Pattern_ em todos os produtores (monolito, ms-tarefa, ms-documento). Cada produtor possui sua própria tabela de outbox e um worker dedicado que faz polling com `SELECT ... FOR UPDATE SKIP LOCKED` e publica no RabbitMQ.
+- **At-least-once delivery:** mensagens publicadas com `persistent: true`. Em caso de crash entre publicação e `mark_*_outbox_published`, a mensagem pode ser republicada — daí a importância da idempotência no consumidor.
+- **Idempotência no consumidor:** cada microsserviço mantém uma tabela `processed_events*` (PK = `event_id`) que impede efeitos colaterais duplicados.
+- **Entrega assíncrona ao app mobile:** o MS Notificações persiste a notificação e, na mesma transação lógica, faz push em tempo real via WebSocket (`socket.io`) para a sala `user:<userId>`. O cliente atualiza badge e listas sem polling.
 - **Retry e DLQ:** mensagens com envelope inválido, sem handler ou que lançam exceção vão para `lamd.events.dlq` via DLX.

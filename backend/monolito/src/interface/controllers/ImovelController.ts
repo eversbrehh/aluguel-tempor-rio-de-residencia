@@ -90,4 +90,38 @@ export class ImovelController {
       next(err);
     }
   }
+
+  /**
+   * GET /api/v1/imoveis/:id/associacoes
+   * - Proprietário: lista todas as associações ATIVAS do imóvel (com nome do comodatário).
+   * - Comodatário: retorna sua própria associação ativa (lista com 0 ou 1 item).
+   */
+  static async listAssociacoes(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const user = requireUser(req);
+      const imovel = await container.imovelRepo.findById(req.params.id);
+      if (!imovel) {
+        res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Imóvel não encontrado' } });
+        return;
+      }
+
+      if (imovel.proprietarioId === user.id) {
+        const associacoes = await container.associacaoRepo.findAtivasByImovel(imovel.id);
+        res.status(200).json({ data: associacoes });
+        return;
+      }
+
+      const minha = await container.associacaoRepo.findAtivaByImovelEComodatario(
+        imovel.id,
+        user.id,
+      );
+      res.status(200).json({ data: minha ? [{ ...minha, comodatarioNome: null }] : [] });
+    } catch (err) {
+      next(err);
+    }
+  }
 }

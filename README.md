@@ -37,8 +37,55 @@ A documentação completa da proposta está em [Documentação LAMD.md](Document
 |---|---|---|
 | 1 | Backend REST + arquitetura | concluída |
 | 2 | Integração com MOM (RabbitMQ) | concluída |
-| 3 | App Flutter Cliente | — |
-| 4 | App Flutter Prestador + entrega final | — |
+| 3 | Microsserviços (notificações, tarefa, documento) + App Flutter Cliente | concluída |
+| 4 | App Flutter Prestador + entrega final | em andamento |
+
+## Arquitetura distribuída
+
+```mermaid
+flowchart LR
+  subgraph mobile[Mobile]
+    cli[App Cliente Flutter]
+  end
+
+  subgraph backend[Backend]
+    mono[Monolito REST]
+    msN[MS Notificações]
+    msT[MS Tarefa]
+    msD[MS Documento]
+  end
+
+  subgraph infra[Infra]
+    rmq[RabbitMQ]
+    sup[Supabase + Storage]
+  end
+
+  cli -- HTTPS REST --> mono
+  cli -- HTTPS REST --> msN
+  cli -- HTTPS REST --> msT
+  cli -- HTTPS REST --> msD
+  cli <-- WebSocket --> msN
+
+  mono -- publish --> rmq
+  msT -- publish --> rmq
+  msD -- publish --> rmq
+  rmq -- consume --> msN
+  rmq -- consume --> msT
+  rmq -- consume --> msD
+
+  mono --> sup
+  msN --> sup
+  msT --> sup
+  msD --> sup
+```
+
+- **Outbox Pattern** em cada producer (monolito, MS Tarefa, MS Documento)
+  com `OutboxWorker` que publica eventos atomicamente após a transação.
+- **Idempotência** garantida no consumo via `processed_events` por serviço.
+- **WebSocket** em `ms-notificacoes` (sala `user:<id>`) faz push em tempo
+  real para o app cliente sempre que um novo evento de domínio chega.
+
+Catálogo completo de eventos: [docs/events.md](docs/events.md).
 
 ## Como subir a infraestrutura local
 
@@ -56,3 +103,25 @@ Cada módulo possui o próprio `README.md` com instruções:
 
 - Backend monolito: [backend/monolito/README.md](backend/monolito/README.md)
 - MS Notificações: [backend/ms-notificacoes/README.md](backend/ms-notificacoes/README.md)
+- MS Tarefa: [backend/ms-tarefa/README.md](backend/ms-tarefa/README.md)
+- MS Documento: [backend/ms-documento/README.md](backend/ms-documento/README.md)
+- App Cliente (Flutter): [mobile/cliente/README.md](mobile/cliente/README.md)
+
+### Roteiro rápido de execução local
+
+```powershell
+# 1. Subir RabbitMQ
+docker compose up -d rabbitmq
+
+# 2. Em terminais separados, subir cada serviço
+cd backend/monolito       ; npm install ; npm run dev   # porta 3000
+cd backend/ms-notificacoes; npm install ; npm run dev   # porta 3001 (HTTP + WS)
+cd backend/ms-tarefa      ; npm install ; npm run dev   # porta 3002
+cd backend/ms-documento   ; npm install ; npm run dev   # porta 3003
+
+# 3. App Flutter (em outro terminal, com emulador Android aberto)
+cd mobile/cliente
+flutter pub get
+flutter run
+```
+

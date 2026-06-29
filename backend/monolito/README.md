@@ -112,6 +112,11 @@ Autentica e retorna JWT do Supabase.
 **Body:** `{ "email": "...", "password": "..." }`
 **200:** `{ "data": { "accessToken": "...", "refreshToken": "...", "expiresIn": 3600, "userId": "uuid" } }`
 
+#### `GET /api/v1/auth/me` (autenticado)
+Retorna o perfil do usuário autenticado a partir do JWT.
+
+**200:** `{ "data": { "id": "uuid", "email": "...", "nome": "...", "tipo": "proprietario|comodatario", "telefone": "..." } }`
+
 ### Imóveis (autenticados — header `Authorization: Bearer <accessToken>`)
 
 #### `POST /api/v1/imoveis` (proprietário)
@@ -149,6 +154,12 @@ Vincula um comodatário ao imóvel.
 }
 ```
 **201:** `{ "data": <Associacao> }`
+
+#### `GET /api/v1/imoveis/:id/associacoes` (proprietário ou comodatário)
+Lista as associações ativas de um imóvel, incluindo o nome do comodatário.
+Comodatário só vê a própria associação.
+
+**200:** `{ "data": [{ "id": "uuid", "comodatarioId": "uuid", "comodatarioNome": "Maria", "dataInicio": "...", "dataFim": "...", "status": "ativa" }] }`
 
 #### `PATCH /api/v1/imoveis/:imovelId/associacoes/:associacaoId/encerrar` (proprietário)
 Encerra uma associação ativa. Dispara o evento `associacao.encerrada`.

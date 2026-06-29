@@ -12,9 +12,24 @@ export const QUEUES = {
  * Bindings (queue -> routing keys) declarados pelo monolito (publisher).
  * Cada microsserviço consumidor pode redeclarar suas próprias bindings
  * de forma idempotente.
+ *
+ * Sprint 3:
+ * - notificacoes.eventos passa a consumir também eventos emitidos por
+ *   MS Tarefa (tarefa.*) e MS Documento (documento.*), para entrega
+ *   em tempo real ao app móvel via WebSocket.
  */
 const BINDINGS: Record<string, string[]> = {
-  [QUEUES.notificacoes]: ['associacao.criada', 'associacao.encerrada', 'imovel.criado'],
+  [QUEUES.notificacoes]: [
+    'associacao.criada',
+    'associacao.encerrada',
+    'imovel.criado',
+    'tarefa.criada',
+    'tarefa.concluida',
+    'documento.solicitado',
+    'documento.enviado',
+    'documento.aprovado',
+    'documento.rejeitado',
+  ],
   [QUEUES.tarefas]: ['associacao.criada', 'associacao.encerrada'],
   [QUEUES.chat]: ['associacao.criada', 'associacao.encerrada'],
   [QUEUES.documentos]: ['associacao.criada'],
